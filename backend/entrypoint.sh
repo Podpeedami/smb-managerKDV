@@ -19,6 +19,9 @@ if [ ! -f /etc/samba/smb.conf ]; then
 EOF
 fi
 
+# Ensure guest access is enabled in an existing persistent smb.conf.
+sed -i 's/^[[:space:]]*map to guest[[:space:]]*=.*/    map to guest = Bad User/' /etc/samba/smb.conf
+
 # Always include application-managed shares.
 grep -qxF 'include = /etc/samba/shares.conf' /etc/samba/smb.conf || \
   printf '\ninclude = /etc/samba/shares.conf\n' >> /etc/samba/smb.conf
