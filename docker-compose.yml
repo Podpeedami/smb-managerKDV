@@ -14,8 +14,8 @@ services:
       - ./samba-lib:/var/lib/samba
       - ./state:/state
     ports:
-      - 445:445
-      - 139:139
+      - 1445:445
+      - 1390:139
     cap_add:
       - CHOWN
       - DAC_OVERRIDE

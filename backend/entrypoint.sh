@@ -10,7 +10,7 @@ if [ ! -f /etc/samba/smb.conf ]; then
     workgroup = WORKGROUP
     server string = SMB Manager
     security = user
-    map to guest = never
+    map to guest = Bad User
     server min protocol = SMB2
     smb ports = 445
     load printers = no

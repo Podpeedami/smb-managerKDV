@@ -749,6 +749,8 @@ function ShareModal({ close, reload }) {
   const [name, setName] = useState('');
   const [path, setPath] = useState('');
   const [comment, setComment] = useState('');
+  const [guest, setGuest] = useState(false);
+  const [guestAccess, setGuestAccess] = useState('RO');
 
   return (
     <Modal
@@ -765,7 +767,9 @@ function ShareModal({ close, reload }) {
               body: JSON.stringify({
                 name,
                 path,
-                comment
+                comment,
+                guest,
+                guest_access: guestAccess
               })
             });
 
@@ -812,6 +816,39 @@ function ShareModal({ close, reload }) {
             placeholder="Общие документы"
           />
         </label>
+
+        <label className="checkbox">
+          <input
+            type="checkbox"
+            checked={guest}
+            onChange={(event) =>
+              setGuest(event.target.checked)
+            }
+          />
+
+          Гостевой доступ без логина и пароля
+        </label>
+
+        {guest && (
+          <label>
+            Права гостя
+
+            <select
+              value={guestAccess}
+              onChange={(event) =>
+                setGuestAccess(event.target.value)
+              }
+            >
+              <option value="RO">
+                Только чтение
+              </option>
+
+              <option value="RW">
+                Чтение и запись
+              </option>
+            </select>
+          </label>
+        )}
 
         <div className="path">
           Папка:{' '}

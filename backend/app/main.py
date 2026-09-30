@@ -34,6 +34,8 @@ class ShareCreate(BaseModel):
     name: str
     path: str = ""
     comment: str = ""
+    guest: bool = False
+    guest_access: Literal["RO", "RW"] = "RO"
 
 
 class AccessChange(BaseModel):
@@ -140,37 +142,85 @@ def remove_acl(path: Path, username: str):
 
 def render_shares(state):
     lines = []
+
     for name, share in state["shares"].items():
         path = share["path"]
+        comment = share.get("comment", "")
+
+        # Гостевая папка без логина и пароля
+        if share.get("guest", False):
+            guest_access = share.get("guest_access", "RO")
+
+            lines += [
+                f"[{name}]",
+                f"    path = {path}",
+                f"    comment = {comment}",
+                "    browseable = yes",
+                "    guest ok = yes",
+                "    guest only = yes",
+                "    inherit acls = yes",
+                "    nt acl support = yes",
+            ]
+
+            if guest_access == "RW":
+                lines += [
+                    "    read only = no",
+                    "    force user = nobody",
+                    "    force group = nogroup",
+                    "    create mask = 0666",
+                    "    force create mode = 0660",
+                    "    directory mask = 0777",
+                    "    force directory mode = 0770",
+                ]
+            else:
+                lines += [
+                    "    read only = yes",
+                ]
+
+            lines.append("")
+            continue
+
+        # Обычная папка с авторизацией пользователей
         access = share.get("access", {})
         rw = [u for u, a in access.items() if a == "RW"]
         ro = [u for u, a in access.items() if a == "RO"]
         valid = rw + ro
-        if not valid:
-            # Share remains configured but inaccessible until a user is added.
-            valid = []
+
         lines += [
             f"[{name}]",
             f"    path = {path}",
-            f"    comment = {share.get('comment', '')}",
+            f"    comment = {comment}",
             "    browseable = yes",
             "    read only = yes",
             "    inherit acls = yes",
             "    nt acl support = yes",
             "    create mask = 0660",
             "    directory mask = 0770",
-            f"    valid users = {' '.join(valid)}" if valid else "    valid users = nobody",
+            f"    valid users = {' '.join(valid)}"
+            if valid
+            else "    valid users = nobody",
             f"    write list = {' '.join(rw)}" if rw else "    write list =",
             "",
         ]
-    SHARES_CONF.write_text("\n".join(lines))
-    # Validate configuration before asking smbd to reload.
-    test = subprocess.run(["testparm", "-s"], capture_output=True, text=True)
-    if test.returncode != 0:
-        raise HTTPException(500, test.stderr[-2000:] or "Invalid Samba configuration")
-    # smbd reload via SIGHUP.
-    subprocess.run(["pkill", "-HUP", "smbd"], capture_output=True)
 
+    SHARES_CONF.write_text("\n".join(lines))
+
+    test = subprocess.run(
+        ["testparm", "-s"],
+        capture_output=True,
+        text=True,
+    )
+
+    if test.returncode != 0:
+        raise HTTPException(
+            500,
+            test.stderr[-2000:] or "Invalid Samba configuration",
+        )
+
+    subprocess.run(
+        ["pkill", "-HUP", "smbd"],
+        capture_output=True,
+    )
 
 @app.get("/health")
 def health():
@@ -238,11 +288,36 @@ def create_share(data: ShareCreate, _: None = Depends(auth)):
         raise HTTPException(409, "Share already exists")
     path = safe_path(data.path, data.name)
     path.mkdir(parents=True, exist_ok=True)
-    # Owner root, group root; ACLs control named users.
-    path.chmod(0o770)
+
+    if data.guest:
+        if data.guest_access == "RW":
+            path.chmod(0o777)
+
+            nobody_uid = subprocess.run(
+                ["id", "-u", "nobody"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            nobody_gid = subprocess.run(
+                ["id", "-g", "nobody"],
+                capture_output=True,
+                text=True,
+                check=True,
+            ).stdout.strip()
+
+            os.chown(path, int(nobody_uid), int(nobody_gid))
+        else:
+            path.chmod(0o755)
+    else:
+        path.chmod(0o770)
+
     state["shares"][data.name] = {
         "path": str(path),
         "comment": data.comment,
+        "guest": data.guest,
+        "guest_access": data.guest_access if data.guest else "RO",
         "access": {},
     }
     save_state(state)
