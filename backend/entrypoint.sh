@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-mkdir -p /srv/samba /etc/samba /state
+mkdir -p /srv/samba /etc/samba /state /run/samba
 chmod 755 /srv/samba
 
 if [ ! -f /etc/samba/smb.conf ]; then
@@ -42,8 +42,9 @@ PY2
 fi
 
 # Samba needs the private directory for its passdb.
-mkdir -p /etc/samba/private
-chmod 700 /etc/samba/private
+# Samba needs the private directories for its databases.
+mkdir -p /etc/samba/private /var/lib/samba/private
+chmod 700 /etc/samba/private /var/lib/samba/private
 
 # Start Samba in foreground mode in the background of this container.
 smbd -F --no-process-group -s /etc/samba/smb.conf &

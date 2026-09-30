@@ -9,7 +9,7 @@ services:
       - DATA_ROOT=/srv/samba
       - STATE_FILE=/state/state.json
     volumes:
-      - ./data:/srv/samba
+      - /mnt/samba:/srv/samba
       - ./samba:/etc/samba
       - ./samba-lib:/var/lib/samba
       - ./state:/state
