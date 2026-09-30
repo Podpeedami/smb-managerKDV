@@ -1,10 +1,10 @@
----
+﻿---
 services:
   backend:
     build: ./backend
     container_name: smb-manager-backend
     environment:
-      - ADMIN_TOKEN=change-this-to-a-strong-password
+      - ADMIN_TOKEN=${ADMIN_TOKEN:-change-this-to-a-strong-password}
       - SMB_SERVER_NAME=SMB-SERVER
       - DATA_ROOT=/srv/samba
       - STATE_FILE=/state/state.json
