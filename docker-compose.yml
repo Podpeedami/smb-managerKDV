@@ -1,46 +1,34 @@
+---
 services:
   backend:
     build: ./backend
     container_name: smb-manager-backend
-    restart: unless-stopped
     environment:
-      ADMIN_TOKEN: ${ADMIN_TOKEN:-change-me-now}
-      SMB_SERVER_NAME: ${SMB_SERVER_NAME:-SMB-SERVER}
-      DATA_ROOT: /srv/samba
-      STATE_FILE: /state/state.json
-    ports:
-      - "8000:8000"
-      - "1445:445"
-      - "1390:139"
+      - ADMIN_TOKEN=change-this-to-a-strong-password
+      - SMB_SERVER_NAME=SMB-SERVER
+      - DATA_ROOT=/srv/samba
+      - STATE_FILE=/state/state.json
     volumes:
-      - smb_data:/srv/samba
-      - smb_etc:/etc/samba
-      - smb_lib:/var/lib/samba
-      - smb_state:/state
+      - ./data:/srv/samba
+      - ./samba:/etc/samba
+      - ./samba-lib:/var/lib/samba
+      - ./state:/state
+    ports:
+      - 445:445
+      - 139:139
     cap_add:
       - CHOWN
       - DAC_OVERRIDE
       - FOWNER
       - SETUID
       - SETGID
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://127.0.0.1:8000/health"]
-      interval: 10s
-      timeout: 3s
-      retries: 5
+    restart: unless-stopped
 
   frontend:
     build: ./frontend
     container_name: smb-manager-frontend
-    restart: unless-stopped
-    depends_on:
-      backend:
-        condition: service_healthy
     ports:
-      - "8080:80"
-
-volumes:
-  smb_data:
-  smb_etc:
-  smb_lib:
-  smb_state:
+      - 8080:80
+    depends_on:
+      - backend
+    restart: unless-stopped
