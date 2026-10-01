@@ -1,8 +1,6 @@
 ﻿services:
   backend:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
+    image: ghcr.io/podpeedami/smb-managerkdv-backend:latest
     container_name: smb-manager-backend
     restart: unless-stopped
 
@@ -22,9 +20,7 @@
       - "139:139"
 
   frontend:
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
+    image: ghcr.io/podpeedami/smb-managerkdv-frontend:latest
     container_name: smb-manager-frontend
     restart: unless-stopped
 
