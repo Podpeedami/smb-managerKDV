@@ -1,34 +1,35 @@
-﻿---
-services:
+﻿services:
   backend:
-    build: ./backend
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     container_name: smb-manager-backend
+    restart: unless-stopped
+
     environment:
-      - ADMIN_TOKEN=${ADMIN_TOKEN:-change-this-to-a-strong-password}
-      - SMB_SERVER_NAME=SMB-SERVER
-      - DATA_ROOT=/srv/samba
-      - STATE_FILE=/state/state.json
+      ADMIN_TOKEN: ${ADMIN_TOKEN}
+      SMB_SERVER_NAME: ${SMB_SERVER_NAME:-SMB-SERVER}
+
     volumes:
       - /mnt/samba:/srv/samba
       - ./samba:/etc/samba
       - ./samba-lib:/var/lib/samba
       - ./state:/state
+
     ports:
-      - 445:445
-      - 139:139
-    cap_add:
-      - CHOWN
-      - DAC_OVERRIDE
-      - FOWNER
-      - SETUID
-      - SETGID
-    restart: unless-stopped
+      - "8000:8000"
+      - "445:445"
+      - "139:139"
 
   frontend:
-    build: ./frontend
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     container_name: smb-manager-frontend
+    restart: unless-stopped
+
     ports:
-      - 8080:80
+      - "8080:80"
+
     depends_on:
       - backend
-    restart: unless-stopped
